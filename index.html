@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Flappy Face</title>
+<style>
+body {
+  margin: 0;
+  background: black;
+}
+canvas {
+  display: block;
+  margin: auto;
+  background: #000;
+}
+</style>
+</head>
+<body>
+
+<canvas id="game" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// Load images
+const birdImg = new Image();
+const pipeImg = new Image();
+const bgImg = new Image();
+
+birdImg.src = "./bird.png";
+pipeImg.src = "./pipe.png";
+bgImg.src = "./bg.png";
+
+let imagesLoaded = 0;
+[birdImg, pipeImg, bgImg].forEach(img => {
+  img.onload = () => {
+    imagesLoaded++;
+    if (imagesLoaded === 3) startGame();
+  };
+});
+
+// Bird
+let bird = {
+  x: 80,
+  y: 250,
+  w: 50,
+  h: 50,
+  gravity: 0.5,
+  lift: -8,
+  velocity: 0
+};
+
+let pipes = [];
+let frame = 0;
+let score = 0;
+let gameOver = false;
+
+document.addEventListener("click", flap);
+document.addEventListener("touchstart", flap);
+
+function flap() {
+  if (gameOver) reset();
+  bird.velocity = bird.lift;
+}
+
+function reset() {
+  bird.y = 250;
+  bird.velocity = 0;
+  pipes = [];
+  score = 0;
+  frame = 0;
+  gameOver = false;
+}
+
+function startGame() {
+  requestAnimationFrame(update);
+}
+
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+  // Bird
+  bird.velocity += bird.gravity;
+  bird.y += bird.velocity;
+  ctx.drawImage(birdImg, bird.x, bird.y, bird.w, bird.h);
+
+  // Pipes
+  if (frame % 100 === 0) {
+    let gap = 160;
+    let top = Math.random() * 200 + 50;
+    pipes.push({ x: canvas.width, top });
+  }
+
+  pipes.forEach(p => {
+    p.x -= 2;
+
+    // Bottom
+    ctx.drawImage(pipeImg, p.x, p.top + 160);
+
+    // Top (flipped)
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.drawImage(pipeImg, p.x, -p.top);
+    ctx.restore();
+
+    // Collision
+    if (
+      bird.x < p.x + pipeImg.width &&
+      bird.x + bird.w > p.x &&
+      (bird.y < p.top || bird.y + bird.h > p.top + 160)
+    ) {
+      gameOver = true;
+    }
+  });
+
+  pipes = pipes.filter(p => p.x + pipeImg.width > 0);
+
+  // Ground / sky collision
+  if (bird.y + bird.h > canvas.height || bird.y < 0) {
+    gameOver = true;
+  }
+
+  // Score
+  ctx.fillStyle = "white";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 30);
+
+  frame++;
+
+  if (!gameOver) {
+    requestAnimationFrame(update);
+  } else {
+    ctx.font = "30px Arial";
+    ctx.fillText("Game Over", 110, 300);
+    ctx.font = "16px Arial";
+    ctx.fillText("Tap to Restart", 140, 330);
+  }
+}
+</script>
+
+</body>
+  </html>
